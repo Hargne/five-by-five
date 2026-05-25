@@ -54,7 +54,7 @@ Optional flags:
 - `-k /path/to/key.der` to override signing key (default: `~/.ciq/developer_key.der`)
 - `-o /path/to/output.iq` to override output path (default: `bin/FiveByFive.iq`)
 
-### Runing in Simulator
+### Running in Simulator
 
 #### 1. Start the Simulator
 
@@ -75,6 +75,31 @@ monkeydo bin/FiveByFive.prg <device-id>
 ```
 
 Replace `<device-id>` with your target device (for example: `fr245`).
+
+### Dev Loop: Watch, Rebuild, and Redeploy
+
+For a smoother local development loop, start the simulator once:
+
+```bash
+simulator
+```
+
+Then run the watcher in another terminal:
+
+```bash
+scripts/dev-sim.sh -d fr245
+```
+
+The watcher builds `bin/FiveByFive.prg`, deploys it with `monkeydo`, and repeats whenever files in `source/`, `resources/`, `manifest.xml`, or `monkey.jungle` change.
+
+You can also configure it with environment variables:
+
+```bash
+CONNECTIQ_DEVICE_ID=fr245 \
+CONNECTIQ_KEY_PATH="$HOME/.ciq/developer_key.der" \
+CONNECTIQ_SDK_HOME="/path/to/connectiq-sdk" \
+scripts/dev-sim.sh
+```
 
 ### Install on a Physical Device
 
