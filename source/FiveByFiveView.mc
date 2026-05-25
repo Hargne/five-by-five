@@ -1,4 +1,5 @@
 using Toybox.Graphics;
+using Toybox.Lang;
 using Toybox.Timer;
 using Toybox.WatchUi;
 
@@ -25,7 +26,7 @@ class FiveByFiveMainView extends WatchUi.View {
     }
 
     function onUpdate(dc) {
-        var model = _machine.getDisplayModel();
+        var model = _machine.getDisplayModel() as Lang.Dictionary;
 
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
@@ -62,7 +63,7 @@ class FiveByFiveMainView extends WatchUi.View {
 
         if (model[:showSettings]) {
             dc.drawText(cx, (52 * yScale).toNumber() + centerShift, Graphics.FONT_SMALL, "Settings", Graphics.TEXT_JUSTIFY_CENTER);
-            var options = model[:settingsOptions];
+            var options = model[:settingsOptions] as Lang.Array;
             var cursor = model[:settingsCursor].toNumber();
             for (var si = 0; si < options.size(); si += 1) {
                 var sy = (86 * yScale).toNumber() + centerShift + (si * lineStep);
@@ -88,7 +89,7 @@ class FiveByFiveMainView extends WatchUi.View {
         dc.drawText(cx, headingY, segmentFont, model[:segment], Graphics.TEXT_JUSTIFY_CENTER);
 
         if (model[:showSelection]) {
-            var options = model[:selectionOptions];
+            var options = model[:selectionOptions] as Lang.Array;
             var cursor = model[:selectionCursor].toNumber();
             for (var i = 0; i < options.size(); i += 1) {
                 var rowY = selectionStartY + (i * lineStep);
@@ -98,7 +99,7 @@ class FiveByFiveMainView extends WatchUi.View {
         }
 
         if (model[:showProgramPreview]) {
-            var previewLines = model[:programPreviewLines];
+            var previewLines = model[:programPreviewLines] as Lang.Array;
             var previewOffset = model[:programPreviewScroll].toNumber();
             var previewStartY = (68 * yScale).toNumber() + centerShift;
             var previewItemGap = (4 * yScale).toNumber();
@@ -144,6 +145,8 @@ class FiveByFiveMainView extends WatchUi.View {
     }
 
     function _drawOverlay(dc, model) {
+        model = model as Lang.Dictionary;
+
         var w = dc.getWidth();
         var h = dc.getHeight();
         var yScale = h.toFloat() / 240.0;
@@ -163,7 +166,7 @@ class FiveByFiveMainView extends WatchUi.View {
         dc.drawRectangle(x, y, boxW, boxH);
         dc.drawText(w / 2, titleY, Graphics.FONT_XTINY, model[:overlayTitle], Graphics.TEXT_JUSTIFY_CENTER);
 
-        var options = model[:overlayOptions];
+        var options = model[:overlayOptions] as Lang.Array;
         var cursor = model[:overlayCursor].toNumber();
 
         if (model[:weightEditOpen]) {

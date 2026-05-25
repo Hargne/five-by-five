@@ -23,7 +23,7 @@ module FiveByFiveStorage {
     }
 
     function loadProfile() {
-        var profile = defaultProfile();
+        var profile = defaultProfile() as Lang.Dictionary;
         var saved = Application.Storage.getValue(PROFILE_KEY);
         if (!(saved instanceof Lang.Dictionary)) {
             // Backward compatibility: preserve existing user data from the old app key.
@@ -50,8 +50,8 @@ module FiveByFiveStorage {
         }
         if (savedWeights instanceof Lang.Dictionary) {
             savedWeights = savedWeights as Lang.Dictionary;
-            var merged = _defaultWeights();
-            var exerciseNames = merged.keys();
+            var merged = _defaultWeights() as Lang.Dictionary;
+            var exerciseNames = merged.keys() as Lang.Array;
             for (var i = 0; i < exerciseNames.size(); i += 1) {
                 var exerciseName = exerciseNames[i];
                 if (savedWeights[exerciseName] != null) {
@@ -65,18 +65,20 @@ module FiveByFiveStorage {
     }
 
     function saveProfile(profile) {
+        profile = profile as Lang.Dictionary;
+
         var payload = {
             "lastWorkout" => null,
             "weights" => {}
-        };
+        } as Lang.Dictionary;
 
         if (profile[:lastWorkout] != null) {
             payload["lastWorkout"] = profile[:lastWorkout];
         }
 
-        var sourceWeights = profile[:weights];
-        var payloadWeights = payload["weights"];
-        var exerciseNames = _defaultWeights().keys();
+        var sourceWeights = profile[:weights] as Lang.Dictionary;
+        var payloadWeights = payload["weights"] as Lang.Dictionary;
+        var exerciseNames = (_defaultWeights() as Lang.Dictionary).keys() as Lang.Array;
 
         for (var i = 0; i < exerciseNames.size(); i += 1) {
             var exerciseName = exerciseNames[i];
