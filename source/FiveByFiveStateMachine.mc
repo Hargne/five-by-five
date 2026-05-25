@@ -1,6 +1,7 @@
 using Toybox.Activity;
 using Toybox.ActivityRecording;
 using Toybox.Attention;
+using Toybox.Lang as Lang;
 using Toybox.System;
 
 module FiveByFiveState {
@@ -63,7 +64,7 @@ class FiveByFiveStateMachine {
     var _previewScroll;
 
     function initialize() {
-        _profile = FiveByFiveStorage.loadProfile();
+        _profile = FiveByFiveStorage.loadProfile() as Lang.Dictionary;
         _plan = [];
 
         _exerciseIndex = 0;
@@ -85,7 +86,7 @@ class FiveByFiveStateMachine {
         _summaryElapsedMs = null;
         _warmupStarted = false;
 
-        _exerciseEasyMap = {};
+        _exerciseEasyMap = {} as Lang.Dictionary;
 
         _stateBeforeSettings = null;
         _stateBeforeClock = null;
@@ -103,7 +104,8 @@ class FiveByFiveStateMachine {
     }
 
     function _resolveInitialState() {
-        var lastWorkout = _profile[:lastWorkout];
+        var profile = _profile as Lang.Dictionary;
+        var lastWorkout = profile[:lastWorkout];
         if (lastWorkout == null) {
             _transitionTo(FiveByFiveState.SELECT_WORKOUT);
             return;
@@ -134,16 +136,18 @@ class FiveByFiveStateMachine {
     }
 
     function _buildPlanForWorkout() {
-        _plan = FiveByFiveWorkoutLogic.getWorkout(_workoutName);
+        _plan = FiveByFiveWorkoutLogic.getWorkout(_workoutName) as Lang.Array;
         _exerciseIndex = 0;
         _setIndex = 0;
         _previewScroll = 0;
         _warmupStarted = false;
 
-        _exerciseEasyMap = {};
-        for (var i = 0; i < _plan.size(); i += 1) {
-            var ex = _plan[i];
-            _exerciseEasyMap[ex[:name]] = false;
+        _exerciseEasyMap = {} as Lang.Dictionary;
+        var exerciseEasyMap = _exerciseEasyMap as Lang.Dictionary;
+        var plan = _plan as Lang.Array;
+        for (var i = 0; i < plan.size(); i += 1) {
+            var ex = plan[i] as Lang.Dictionary;
+            exerciseEasyMap[ex[:name]] = false;
         }
     }
 
@@ -152,20 +156,23 @@ class FiveByFiveStateMachine {
     }
 
     function _currentExercise() {
-        if ((_plan == null) || (_exerciseIndex >= _plan.size())) {
+        var plan = _plan as Lang.Array;
+        if ((plan == null) || (_exerciseIndex >= plan.size())) {
             return null;
         }
-        return _plan[_exerciseIndex];
+        return plan[_exerciseIndex] as Lang.Dictionary;
     }
 
     function _currentWeight() {
-        var ex = _currentExercise();
-        if (ex == null) {
+        var currentExercise = _currentExercise();
+        if (currentExercise == null) {
             return 0.0;
         }
 
+        var ex = currentExercise as Lang.Dictionary;
         var name = ex[:name];
-        var weights = _profile[:weights];
+        var profile = _profile as Lang.Dictionary;
+        var weights = profile[:weights] as Lang.Dictionary;
         var value = weights[name];
 
         if (value == null) {
@@ -175,8 +182,8 @@ class FiveByFiveStateMachine {
     }
 
     function _setCurrentWeight(value) {
-        var ex = _currentExercise();
-        if (ex == null) {
+        var currentExercise = _currentExercise();
+        if (currentExercise == null) {
             return;
         }
 
@@ -184,8 +191,10 @@ class FiveByFiveStateMachine {
             value = 0.0;
         }
 
+        var ex = currentExercise as Lang.Dictionary;
         var name = ex[:name];
-        var weights = _profile[:weights];
+        var profile = _profile as Lang.Dictionary;
+        var weights = profile[:weights] as Lang.Dictionary;
         weights[name] = value;
     }
 
@@ -264,12 +273,15 @@ class FiveByFiveStateMachine {
     }
 
     function _applyProgressionToNextSession() {
-        var weights = _profile[:weights];
+        var profile = _profile as Lang.Dictionary;
+        var weights = profile[:weights] as Lang.Dictionary;
+        var exerciseEasyMap = _exerciseEasyMap as Lang.Dictionary;
+        var plan = _plan as Lang.Array;
 
-        for (var i = 0; i < _plan.size(); i += 1) {
-            var ex = _plan[i];
+        for (var i = 0; i < plan.size(); i += 1) {
+            var ex = plan[i] as Lang.Dictionary;
             var exerciseName = ex[:name];
-            if (_exerciseEasyMap[exerciseName]) {
+            if (exerciseEasyMap[exerciseName]) {
                 var currentWeight = weights[exerciseName].toFloat();
                 weights[exerciseName] = currentWeight + ex[:increment].toFloat();
             }
@@ -278,13 +290,15 @@ class FiveByFiveStateMachine {
 
     function _saveCompletedSession() {
         _applyProgressionToNextSession();
-        _profile[:lastWorkout] = _workoutName;
+        var profile = _profile as Lang.Dictionary;
+        profile[:lastWorkout] = _workoutName;
         FiveByFiveStorage.saveProfile(_profile);
         _stopAndSaveActivity();
     }
 
     function _saveSessionWithoutProgression() {
-        _profile[:lastWorkout] = _workoutName;
+        var profile = _profile as Lang.Dictionary;
+        profile[:lastWorkout] = _workoutName;
         FiveByFiveStorage.saveProfile(_profile);
         _stopAndSaveActivity();
     }
@@ -356,7 +370,8 @@ class FiveByFiveStateMachine {
             _notifySegmentEnd();
             _recordLap();
 
-            if ((_exerciseIndex + 1) < _plan.size()) {
+            var plan = _plan as Lang.Array;
+            if ((_exerciseIndex + 1) < plan.size()) {
                 _exerciseIndex += 1;
                 _setIndex = 0;
                 _enterSegment(FiveByFiveState.REST);
@@ -396,17 +411,20 @@ class FiveByFiveStateMachine {
             return "";
         }
 
-        var item = _skippedSegments[_makeupIndex];
+        var skippedSegments = _skippedSegments as Lang.Array;
+        var item = skippedSegments[_makeupIndex] as Lang.Dictionary;
         var t = item[:type];
         if (t == FiveByFiveState.WARMUP) {
             return "Warmup";
         }
 
         if (t == :EXERCISE) {
-            var ex = _plan[item[:exerciseIndex]];
-            if (ex == null) {
+            var plan = _plan as Lang.Array;
+            var exerciseIndex = item[:exerciseIndex].toNumber();
+            if (exerciseIndex >= plan.size()) {
                 return "Exercise";
             }
+            var ex = plan[exerciseIndex] as Lang.Dictionary;
             return ex[:name] + " (all sets)";
         }
 
@@ -511,12 +529,13 @@ class FiveByFiveStateMachine {
             _notifySegmentEnd();
             _recordLap();
 
-            var ex = _currentExercise();
-            if (ex == null) {
+            var currentExercise = _currentExercise();
+            if (currentExercise == null) {
                 _gotoEndOrSkippedPrompt();
                 return;
             }
 
+            var ex = currentExercise as Lang.Dictionary;
             var totalSets = ex[:sets].toNumber();
             if ((_setIndex + 1) < totalSets) {
                 _setIndex += 1;
@@ -531,12 +550,15 @@ class FiveByFiveStateMachine {
         }
 
         if (_state == FiveByFiveState.CHOICE) {
-            var exChoice = _currentExercise();
-            if (exChoice != null) {
-                _exerciseEasyMap[exChoice[:name]] = (_choiceCursor == 0);
+            var currentExerciseChoice = _currentExercise();
+            if (currentExerciseChoice != null) {
+                var exChoice = currentExerciseChoice as Lang.Dictionary;
+                var exerciseEasyMap = _exerciseEasyMap as Lang.Dictionary;
+                exerciseEasyMap[exChoice[:name]] = (_choiceCursor == 0);
             }
 
-            if ((_exerciseIndex + 1) < _plan.size()) {
+            var plan = _plan as Lang.Array;
+            if ((_exerciseIndex + 1) < plan.size()) {
                 _exerciseIndex += 1;
                 _setIndex = 0;
                 _enterSegment(FiveByFiveState.REST);
@@ -548,7 +570,7 @@ class FiveByFiveStateMachine {
 
         if (_state == FiveByFiveState.SETTINGS) {
             var baseState = _effectiveSettingsBaseState();
-            var options = _settingsOptions();
+            var options = _settingsOptions() as Lang.Array;
             if (options.size() == 0) {
                 _state = baseState;
                 _resumeElapsedIfFrozen();
@@ -638,12 +660,12 @@ class FiveByFiveStateMachine {
 
     function _settingsOptions() {
         var baseState = _effectiveSettingsBaseState();
-        var options = ["Resume"];
+        var options = ["Resume"] as Lang.Array;
 
         if (_isWorkoutSegmentState(baseState)) {
-            options = ["Edit weight", "Skip segment", "Resume"];
+            options = ["Edit weight", "Skip segment", "Resume"] as Lang.Array;
         } else if (baseState == FiveByFiveState.WARMUP) {
-            options = ["Skip segment", "Resume"];
+            options = ["Skip segment", "Resume"] as Lang.Array;
         }
 
         return options;
@@ -692,7 +714,7 @@ class FiveByFiveStateMachine {
         }
 
         if (_state == FiveByFiveState.SETTINGS) {
-            var options = _settingsOptions();
+            var options = _settingsOptions() as Lang.Array;
             if (options.size() > 0) {
                 if (_settingsCursor == 0) {
                     _settingsCursor = options.size() - 1;
@@ -750,7 +772,7 @@ class FiveByFiveStateMachine {
         }
 
         if (_state == FiveByFiveState.SETTINGS) {
-            var options2 = _settingsOptions();
+            var options2 = _settingsOptions() as Lang.Array;
             if (options2.size() > 0) {
                 _settingsCursor = (_settingsCursor + 1) % options2.size();
             }
@@ -851,10 +873,11 @@ class FiveByFiveStateMachine {
         }
 
         if (_state == FiveByFiveState.WORK || _state == FiveByFiveState.CHOICE) {
-            var ex = _currentExercise();
-            if (ex == null) {
+            var currentExercise = _currentExercise();
+            if (currentExercise == null) {
                 return "";
             }
+            var ex = currentExercise as Lang.Dictionary;
             return ex[:name] + " " + (_setIndex + 1).format("%d") + "/" + ex[:sets].format("%d");
         }
 
@@ -895,10 +918,11 @@ class FiveByFiveStateMachine {
 
     function _currentWeightText() {
         if (_state == FiveByFiveState.REST) {
-            var exRest = _currentExercise();
-            if (exRest == null) {
+            var currentExercise = _currentExercise();
+            if (currentExercise == null) {
                 return "";
             }
+            var exRest = currentExercise as Lang.Dictionary;
             return exRest[:name] + " " + (_setIndex + 1).format("%d") + "/" + exRest[:sets].format("%d");
         }
 
@@ -928,15 +952,18 @@ class FiveByFiveStateMachine {
     }
 
     function _programPreviewLines() {
-        var lines = [];
+        var lines = [] as Lang.Array;
 
         if (_workoutName == null) {
             return lines;
         }
 
-        for (var i = 0; i < _plan.size(); i += 1) {
-            var ex = _plan[i];
-            var weights = _profile[:weights];
+        var plan = _plan as Lang.Array;
+        var profile = _profile as Lang.Dictionary;
+        var weights = profile[:weights] as Lang.Dictionary;
+
+        for (var i = 0; i < plan.size(); i += 1) {
+            var ex = plan[i] as Lang.Dictionary;
             var value = weights[ex[:name]];
             if (value == null) {
                 value = 0.0;
@@ -949,7 +976,7 @@ class FiveByFiveStateMachine {
     }
 
     function _programPreviewMaxScroll() {
-        var lines = _programPreviewLines();
+        var lines = _programPreviewLines() as Lang.Array;
         var maxVisible = 3;
         if (lines.size() <= maxVisible) {
             return 0;
@@ -1173,6 +1200,6 @@ class FiveByFiveStateMachine {
             :overlayTitle => _overlayTitle(),
             :overlayOptions => _overlayOptions(),
             :overlayCursor => _overlayCursor()
-        };
+        } as Lang.Dictionary;
     }
 }
