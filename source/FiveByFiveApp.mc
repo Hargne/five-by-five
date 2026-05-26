@@ -3,8 +3,11 @@ using Toybox.WatchUi;
 
 class FiveByFiveApp extends Application.AppBase {
 
+    var _viewManager;
+
     function initialize() {
         AppBase.initialize();
+        _viewManager = new FiveByFiveMainViewManager();
     }
 
     function onStart(state) {
@@ -14,9 +17,7 @@ class FiveByFiveApp extends Application.AppBase {
     }
 
     function getInitialView() {
-        var view = new FiveByFiveMainView();
-        var input = new FiveByFiveInputDelegate(view);
-        return [view, input];
+        return _viewManager.getInitialView();
     }
 }
 
