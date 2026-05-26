@@ -10,6 +10,7 @@
         version="0.0.14">
         <iq:products>
             <iq:product id="fr245" />
+            <iq:product id="fr965" />
         </iq:products>
         <iq:permissions>
             <iq:uses-permission id="Fit" />
