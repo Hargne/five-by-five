@@ -10,7 +10,7 @@ class FiveByFiveMainSelectionView extends WatchUi.View {
   var _selectedIndex = 0;
   var _onSelect;
   var _onBack;
-  var _separatorHeight = 1;
+  var _separatorHeight = 2;
 
   function initialize(title, options) {
     _title = title;
@@ -19,6 +19,16 @@ class FiveByFiveMainSelectionView extends WatchUi.View {
     _onBack = null;
 
     View.initialize();
+  }
+
+  function setTitle(title) {
+    _title = title;
+    WatchUi.requestUpdate();
+  }
+
+  function setOptions(options) {
+    _options = options as Lang.Array;
+    WatchUi.requestUpdate();
   }
 
   function setSelectedIndex(index) {
@@ -138,13 +148,13 @@ class FiveByFiveMainSelectionView extends WatchUi.View {
     WatchUi.requestUpdate();
   }
 
-    function handleUpPress() {
-      if (_selectedIndex <= 0) {
-          return;
-      }
-      _selectedIndex = _selectedIndex - 1;
-      WatchUi.requestUpdate();
+  function handleUpPress() {
+    if (_selectedIndex <= 0) {
+        return;
     }
+    _selectedIndex = _selectedIndex - 1;
+    WatchUi.requestUpdate();
+  }
 
   function handleLapPress() {
     if (_onSelect == null) {
@@ -159,6 +169,7 @@ class FiveByFiveMainSelectionView extends WatchUi.View {
     if (_onBack == null) {
       return false;
     }
+
     _onBack.invoke();
     return true;
   }

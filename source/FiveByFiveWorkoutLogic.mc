@@ -1,3 +1,6 @@
+using Toybox.Lang;
+using Toybox.Math;
+
 module FiveByFiveWorkoutLogic {
     const WORKOUT_A = [
         { :name => "Squat", :sets => 5, :increment => 2.5 },
@@ -36,5 +39,20 @@ module FiveByFiveWorkoutLogic {
 
     function formatWeightKg(value) {
         return value.format("%0.1f") + " kg";
+    }
+
+    // Trims to the smallest decimal precision that exactly represents the weight:
+    // whole numbers show no decimals, halves show 1, quarters show 2.
+    function formatWeight(value) as Lang.String {
+        var w = value.toFloat();
+        var quarters = Math.round(w * 4).toNumber();
+
+        if (quarters % 4 == 0) {
+            return (quarters / 4).toString() + " kg";
+        } else if (quarters % 2 == 0) {
+            return w.format("%.1f") + " kg";
+        }
+
+        return w.format("%.2f") + " kg";
     }
 }

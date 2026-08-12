@@ -1,19 +1,22 @@
+using Toybox.Lang;
 using Toybox.System;
 using Toybox.WatchUi;
 
-class FiveByFiveInputDelegate extends WatchUi.InputDelegate {
+class FiveByFiveInputDelegate extends WatchUi.BehaviorDelegate {
     const HOLD_MS = 700;
 
     var _view;
     var _upPressedAt;
+    var _upHandledAt;
 
     function initialize(view) {
-        InputDelegate.initialize();
+        BehaviorDelegate.initialize();
         _view = view;
         _upPressedAt = 0;
+        _upHandledAt = 0;
     }
 
-    function onKeyPressed(keyEvent) {
+    function onKeyPressed(keyEvent) as Lang.Boolean {
         var key = keyEvent.getKey();
 
         if (_isLapKey(key)) {
@@ -27,19 +30,19 @@ class FiveByFiveInputDelegate extends WatchUi.InputDelegate {
         }
 
         if (_isBackKey(key)) {
-            _view.handleBackPress();
-            return true;
+            return _handleBackPress();
         }
 
         if (_isUpKey(key)) {
             _upPressedAt = System.getTimer();
+            _upHandledAt = _upPressedAt;
             return true;
         }
 
         return false;
     }
 
-    function onKeyReleased(keyEvent) {
+    function onKeyReleased(keyEvent) as Lang.Boolean {
         var key = keyEvent.getKey();
         if (_isBackKey(key)) {
             return true;
@@ -56,9 +59,32 @@ class FiveByFiveInputDelegate extends WatchUi.InputDelegate {
         return false;
     }
 
-    function onKey(keyEvent) {
-        // Key handling is done in onKeyPressed/onKeyReleased to support FR245 START/STOP behavior.
+    function onKey(keyEvent) as Lang.Boolean {
+        var key = keyEvent.getKey();
+        if (_isBackKey(key)) {
+            return _handleBackPress();
+        }
+
+        // Other key handling is done in onKeyPressed/onKeyReleased to support FR245 START/STOP behavior.
         return false;
+    }
+
+    function onBack() as Lang.Boolean {
+        return _handleBackPress();
+    }
+
+    function onPreviousPage() as Lang.Boolean {
+        // On devices where the up key already triggered handleUpPress/handleUpHold,
+        // the system also echoes it as onPreviousPage; ignore that echo.
+        if (System.getTimer() - _upHandledAt < HOLD_MS) {
+            return true;
+        }
+        return _handleBackPress();
+    }
+
+    function _handleBackPress() as Lang.Boolean {
+        _view.handleBackPress();
+        return true;
     }
 
     function _isLapKey(key) {

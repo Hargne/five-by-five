@@ -4,7 +4,7 @@ using Toybox.System;
 using Toybox.Timer;
 using Toybox.WatchUi;
 
-module FiveByFiveScreen {
+module FiveByFiveView {
   const SELECT_WORKOUT = :SELECT_WORKOUT;
   const WORKOUT_MENU = :WORKOUT_MENU;
   const WORKOUT_EXERCISES_LIST = :WORKOUT_EXERCISES_LIST;
@@ -12,96 +12,91 @@ module FiveByFiveScreen {
 
 class FiveByFiveMainViewManager {
   var _workoutManager;
-  var _currentScreen;
+  var _currentView;
+  var _selectWorkoutView;
+  var _workoutMenuView;
+  var _workoutExercisesListView;
 
   function initialize() {
     _workoutManager = new FiveByFiveWorkoutManager();
+    _selectWorkoutView = null;
+    _workoutMenuView = null;
+    _workoutExercisesListView = null;
   }
 
   function getInitialView() {
-    // If the user has not yet started a workout previously
-    if (_workoutManager.getCurrentWorkout() == null) {
-      _currentScreen = FiveByFiveScreen.SELECT_WORKOUT;
-      var view = getViewFromScreen(FiveByFiveScreen.SELECT_WORKOUT);
-      var inputDelegate = new FiveByFiveInputDelegate(view);
-      return [view, inputDelegate];
-    }
+    var viewName = _workoutManager.getCurrentWorkout() == null ? FiveByFiveView.SELECT_WORKOUT : FiveByFiveView.WORKOUT_MENU;
+    _currentView = viewName;
 
-    _currentScreen = FiveByFiveScreen.WORKOUT_MENU;
-    var view = getViewFromScreen(FiveByFiveScreen.WORKOUT_MENU);
-    var inputDelegate = new FiveByFiveInputDelegate(view);
-    return [view, inputDelegate];
+    var view = _getViewByName(viewName);
+    return [view, new FiveByFiveInputDelegate(view)];
   }
 
-  function getViewFromScreen(screen) {
-    if (screen == FiveByFiveScreen.SELECT_WORKOUT) {
-      var workouts = _workoutManager.getWorkouts();
-      var workoutOptions = [];
-      for (var i = 0; i < workouts.size(); i += 1) {
-        var workout = workouts[i] as Lang.Dictionary;
-        workoutOptions.add([workout[:name], _workoutManager.exercisesToString(workout[:exercises])]);
-      }
-      var workoutView = new FiveByFiveMainSelectionView("Select workout", workoutOptions);
-      workoutView.assignOnSelectHandler(method(:onWorkoutSelected));
-      return workoutView;
-    } else if (screen == FiveByFiveScreen.WORKOUT_MENU) {
-      var currentWorkout = _workoutManager.getCurrentWorkout();
-      var title = "Workout " + currentWorkout[:name];
-      var workoutMenuView = new FiveByFiveMainSelectionView(title, [
-        ["Start"],
-        ["View Exercises"],
-        ["Switch Workout"]
-      ]);
-      workoutMenuView.assignOnSelectHandler(method(:onWorkoutMenuSelection));
-      return workoutMenuView;
-    } else if (screen == FiveByFiveScreen.WORKOUT_EXERCISES_LIST) {
-      var title = "Exercises";
-      var exercises = _workoutManager.getCurrentWorkoutExercises();
-      var exerciseOptions = [];
-      for (var i = 0; i < exercises.size(); i += 1) {
-        var exercise = exercises[i];
-        exerciseOptions.add([
-          exercise[:sets] + "x " + exercise[:name],
-          _workoutManager.getExerciseWeight(exercise)
-        ]);
-      }
+  function transitionTo(viewName, transition) {
+    var targetView = _getViewByName(viewName);
+    WatchUi.switchToView(targetView, new FiveByFiveInputDelegate(targetView), transition);
+    _currentView = viewName;
+  }
 
-      var workoutExercisesView = new FiveByFiveMainSelectionView(title, exerciseOptions);
-      return workoutExercisesView;
+  function _getViewByName(viewName) {
+    if (viewName == FiveByFiveView.SELECT_WORKOUT) {
+      if (_selectWorkoutView == null) {
+        _selectWorkoutView = new SelectWorkoutView(_workoutManager, method(:onWorkoutSelected));
+      }
+      return _selectWorkoutView;
     }
-    
+
+    if (viewName == FiveByFiveView.WORKOUT_MENU) {
+      if (_workoutMenuView == null) {
+        _workoutMenuView = new WorkoutMenuView(method(:onWorkoutMenuSelection));
+        _workoutMenuView.assignOnBackHandler(method(:onWorkoutMenuBack));
+      }
+      _workoutMenuView.setWorkout(_workoutManager.getCurrentWorkout());
+      return _workoutMenuView;
+    }
+
+    if (viewName == FiveByFiveView.WORKOUT_EXERCISES_LIST) {
+      if (_workoutExercisesListView == null) {
+        _workoutExercisesListView = new WorkoutExercisesListView(method(:onStartEditExercise));
+        _workoutExercisesListView.assignOnBackHandler(method(:onWorkoutExercisesListBack));
+      }
+      _workoutExercisesListView.setExercises(_workoutManager.getCurrentWorkoutExercises());
+      return _workoutExercisesListView;
+    }
+
     return null;
   }
 
-  function changeScreen(screen, transition) {
-    _currentScreen = screen;
-    var view = getViewFromScreen(screen);
-    // Transition to view
-    if (view != null) {
-      WatchUi.switchToView(view, new FiveByFiveInputDelegate(view), transition);
-    }
-    return null;
+  function onWorkoutSelected() {
+    transitionTo(FiveByFiveView.WORKOUT_MENU, WatchUi.SLIDE_LEFT );
+  }
+  
+  function onWorkoutMenuBack() {
+    transitionTo(FiveByFiveView.SELECT_WORKOUT, WatchUi.SLIDE_RIGHT);
   }
 
-  function onWorkoutSelected(selectedIndex, selectedOption) {
-    if (selectedIndex == 0) {
-      _workoutManager.selectWorkout("A");
-    } else {
-      _workoutManager.selectWorkout("B");
-    }
-    changeScreen(FiveByFiveScreen.WORKOUT_MENU, WatchUi.SLIDE_LEFT);
-  }
+  function onWorkoutMenuSelection(selectedOption) {
+    var option = selectedOption;
 
-  function onWorkoutMenuSelection(selectedIndex, selectedOption) {
-    var option = selectedOption as Lang.String;
-
-    if (option.equals("Start")) {
+    if (option == WorkoutMenuOptions.START_WORKOUT) {
       System.println("Starting workout");
-    } else if (option.equals("View Exercises")) {
-      changeScreen(FiveByFiveScreen.WORKOUT_EXERCISES_LIST, WatchUi.SLIDE_LEFT);
-    } else if (option.equals("Switch Workout")) {
-      changeScreen(FiveByFiveScreen.SELECT_WORKOUT, WatchUi.SLIDE_RIGHT);
+    } else if (option == WorkoutMenuOptions.VIEW_EXERCISES) {
+      transitionTo(FiveByFiveView.WORKOUT_EXERCISES_LIST, WatchUi.SLIDE_LEFT);
+    } else if (option == WorkoutMenuOptions.SWITCH_WORKOUT) {
+      transitionTo(FiveByFiveView.SELECT_WORKOUT, WatchUi.SLIDE_RIGHT);
     }
+  }
+
+  function onWorkoutExercisesListBack() {
+    var workoutMenuView = _getViewByName(FiveByFiveView.WORKOUT_MENU) as WorkoutMenuView;
+    //workoutMenuView.setSelectedItem("View Exercises");
+    transitionTo(FiveByFiveView.WORKOUT_MENU, WatchUi.SLIDE_RIGHT);
+  }
+
+  function onStartEditExercise(exercise) {
+    var selectedExercise = exercise as Lang.Dictionary;
+    var exerciseName = selectedExercise[:name] as Lang.String;
+    System.println("Starting edit for exercise: " + exerciseName);
   }
 
 }

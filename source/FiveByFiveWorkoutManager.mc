@@ -15,7 +15,7 @@ class FiveByFiveWorkoutManager {
         { :name => "Overhead Press", :sets => 5, :increment => 2.5, :weight => 20.0 },
         { :name => "Deadlift", :sets => 1, :increment => 5.0, :weight => 40.0 }
       ] }
-  ];
+  ] ;
 
   var _currentWorkout = null;
 
@@ -37,6 +37,7 @@ class FiveByFiveWorkoutManager {
     if (savedWeights instanceof Lang.Dictionary) {
       savedWeights = savedWeights as Lang.Dictionary;
 
+      _workouts = _workouts as Lang.Array;
       for (var i = 0; i < _workouts.size(); i += 1) {
         var workout = _workouts[i] as Lang.Dictionary;
         var exercises = workout[:exercises] as Lang.Array;
@@ -98,17 +99,19 @@ class FiveByFiveWorkoutManager {
   }
 
   function getExerciseWeight(exercise) {
+    exercise = exercise as Lang.Dictionary;
     return formatWeightKg(exercise[:weight]);
   }
 
   function exercisesToString(exercises) {
     var names = "";
+    exercises = exercises as Lang.Array;
     for (var i = 0; i < exercises.size(); i += 1) {
-        var exercise = exercises[i] as Lang.Dictionary;
-        if (i > 0) {
-            names += ", ";
-        }
-        names += exercise[:name];
+      var exercise = exercises[i] as Lang.Dictionary;
+      if (i > 0) {
+          names += ", ";
+      }
+      names += exercise[:name];
     }
     return names;
   }
