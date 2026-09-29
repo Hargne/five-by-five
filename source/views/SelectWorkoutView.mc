@@ -1,11 +1,11 @@
 using Toybox.Lang;
 
-class SelectWorkoutView extends FiveByFiveMainSelectionView {
+class SelectWorkoutView extends SelectionViewTemplate {
   var _workoutManager;
   var _onWorkoutSelected;
 
   function initialize(workoutManager, onWorkoutSelected) {
-    FiveByFiveMainSelectionView.initialize("Select Workout", getWorkoutOptions(workoutManager));
+    SelectionViewTemplate.initialize("Select Workout", getWorkoutOptions(workoutManager));
 
     _workoutManager = workoutManager;
     _onWorkoutSelected = onWorkoutSelected;

@@ -8,6 +8,7 @@ module FiveByFiveView {
   const SELECT_WORKOUT = :SELECT_WORKOUT;
   const WORKOUT_MENU = :WORKOUT_MENU;
   const WORKOUT_EXERCISES_LIST = :WORKOUT_EXERCISES_LIST;
+  const EDIT_EXERCISE = :EDIT_EXERCISE;
 }
 
 class FiveByFiveMainViewManager {
@@ -57,7 +58,7 @@ class FiveByFiveMainViewManager {
 
     if (viewName == FiveByFiveView.WORKOUT_EXERCISES_LIST) {
       if (_workoutExercisesListView == null) {
-        _workoutExercisesListView = new WorkoutExercisesListView(method(:onStartEditExercise));
+        _workoutExercisesListView = new WorkoutExercisesListView(method(:onEnterExerciseEdit));
         _workoutExercisesListView.assignOnBackHandler(method(:onWorkoutExercisesListBack));
       }
       _workoutExercisesListView.setExercises(_workoutManager.getCurrentWorkoutExercises());
@@ -68,7 +69,7 @@ class FiveByFiveMainViewManager {
   }
 
   function onWorkoutSelected() {
-    transitionTo(FiveByFiveView.WORKOUT_MENU, WatchUi.SLIDE_LEFT );
+    transitionTo(FiveByFiveView.WORKOUT_MENU, WatchUi.SLIDE_LEFT);
   }
   
   function onWorkoutMenuBack() {
@@ -89,14 +90,23 @@ class FiveByFiveMainViewManager {
 
   function onWorkoutExercisesListBack() {
     var workoutMenuView = _getViewByName(FiveByFiveView.WORKOUT_MENU) as WorkoutMenuView;
-    //workoutMenuView.setSelectedItem("View Exercises");
+    workoutMenuView.setSelectedItem("View Exercises");
     transitionTo(FiveByFiveView.WORKOUT_MENU, WatchUi.SLIDE_RIGHT);
   }
 
-  function onStartEditExercise(exercise) {
+  function onEnterExerciseEdit(exercise) {
     var selectedExercise = exercise as Lang.Dictionary;
     var exerciseName = selectedExercise[:name] as Lang.String;
+    var editExerciseView = new EditExerciseView(_workoutManager, method(:onExitExcerciseEdit), exercise);
+
+    WatchUi.switchToView(editExerciseView, new FiveByFiveInputDelegate(editExerciseView), WatchUi.SLIDE_LEFT);
+    _currentView = FiveByFiveView.EDIT_EXERCISE;
+
     System.println("Starting edit for exercise: " + exerciseName);
+  }
+
+  function onExitExcerciseEdit() {
+    transitionTo(FiveByFiveView.WORKOUT_EXERCISES_LIST, WatchUi.SLIDE_RIGHT);
   }
 
 }

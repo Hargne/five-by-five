@@ -4,7 +4,7 @@ using Toybox.Timer;
 using Toybox.WatchUi;
 using Toybox.System;
 
-class FiveByFiveMainSelectionView extends WatchUi.View {
+class SelectionViewTemplate extends WatchUi.View {
   var _title;
   var _options;
   var _selectedIndex = 0;
@@ -61,6 +61,7 @@ class FiveByFiveMainSelectionView extends WatchUi.View {
     var options = _options as Lang.Array;
     var selectedHeight = height * 0.40;
     var normalHeight = height * 0.30;
+
     var titleHeight = ((height - selectedHeight) / 2).toNumber();
     var titleFont = Graphics.FONT_TINY;
     var titleTextHeight = dc.getFontHeight(titleFont);

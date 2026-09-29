@@ -6,11 +6,11 @@ module WorkoutMenuOptions {
   const SWITCH_WORKOUT = :SWITCH_WORKOUT;
 }
 
-class WorkoutMenuView extends FiveByFiveMainSelectionView {
+class WorkoutMenuView extends SelectionViewTemplate {
   var _onOptionSelected;
 
   function initialize(onOptionSelected) {
-    FiveByFiveMainSelectionView.initialize("", [
+    SelectionViewTemplate.initialize("", [
       ["Start"],
       ["View Exercises"],
       ["Switch Workout"]

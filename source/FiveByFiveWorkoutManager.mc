@@ -90,6 +90,19 @@ class FiveByFiveWorkoutManager {
     return currentWorkout[:exercises] as Lang.Array;
   }
 
+  function editExerciseWeight(exerciseName, newWeight) {
+    var currentWorkout = _currentWorkout as Lang.Dictionary;
+    var exercises = currentWorkout[:exercises] as Lang.Array;
+    for (var i = 0; i < exercises.size(); i += 1) {
+      var exercise = exercises[i] as Lang.Dictionary;
+      if (exercise[:name].equals(exerciseName)) {
+        exercise[:weight] = newWeight;
+        return;
+      }
+    }
+    System.println("Exercise not found: " + exerciseName);
+  }
+
   function formatWeightKg(value) {
     return value.format("%0.1f") + " kg";
   }
