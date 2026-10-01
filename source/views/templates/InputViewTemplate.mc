@@ -5,17 +5,27 @@ using Toybox.Timer;
 using Toybox.WatchUi;
 using Toybox.System;
 
+module FiveByFiveInputType {
+  const NUMERIC = :NUMERIC;
+  const TIME = :TIME;
+}
+
 class InputViewTemplate extends WatchUi.View {
   var _title;
-  var _min;
-  var _max;
+  var _type;
+  var minValue = 0;
+  var maxValue = 0;
   var _onSelect;
   var _onCancel;
 
   var _currentValue = 0;
-  var _editingDecimal = false;
+  var _parts = [];
+  var _currentlyEditingPartIndex = 0;
   var _decimalPlaces = 1;
   var _decimalStep = 5;
+
+  var _editFont = Graphics.FONT_NUMBER_HOT;
+  var _nonEditFont = Graphics.FONT_NUMBER_MILD;
 
   // Garmin's built-in fonts (FONT_NUMBER_* especially) report a getFontHeight() that
   // includes headroom above the visible digit ink, so centering by the full height
@@ -23,10 +33,9 @@ class InputViewTemplate extends WatchUi.View {
   // to compensate; tune by eye in the simulator/device if the fit changes.
   const INTEGER_FONT_TOP_PADDING_RATIO = 0.08;
 
-  function initialize(title, min, max, startValue, onSelect, onCancel) {
+  function initialize(title, type, startValue, onSelect, onCancel) {
     _title = title;
-    _min = min;
-    _max = max;
+    _type = type;
     _currentValue = startValue;
     _onSelect = onSelect;
     _onCancel = onCancel;
@@ -67,65 +76,92 @@ class InputViewTemplate extends WatchUi.View {
     dc.fillRectangle(0, backgroundY, width, backgroundHeight);
 
     // Current Value
-    
-    // Grab the current value as two variables: the integer part and the decimal part,
-    // zero-padded so its length always matches _decimalPlaces (e.g. 2 places -> "05").
-    var integerPart = _currentValue.toNumber();
-    var decimalMultiplier = Math.pow(10, _decimalPlaces).toNumber();
-    var decimalPart = Math.round((_currentValue - integerPart) * decimalMultiplier).toNumber().format("%0" + _decimalPlaces.toString() + "d");
 
-    // Draw the integer part large and the ".decimal" part smaller next to it,
-    // matching how native Garmin number-edit screens present a value.
-    var integerText = integerPart.toString();
-    var decimalText = " . " + decimalPart;
-    
-    var integerFont = Graphics.FONT_NUMBER_HOT;
-    var decimalFont = Graphics.FONT_NUMBER_MILD;
+    _parts = extractParts();
 
-    var integerWidth = dc.getTextWidthInPixels(integerText, integerFont);
-    var decimalWidth = dc.getTextWidthInPixels(decimalText, decimalFont);
+    var editedValue = _parts[_currentlyEditingPartIndex];
+    var editedValueWidth = dc.getTextWidthInPixels(editedValue, _editFont);
+    var editedValueFontHeight = dc.getFontHeight(_editFont);
+    var editedValueVerticalNudge = (editedValueFontHeight * INTEGER_FONT_TOP_PADDING_RATIO).toNumber();
+    var editedValueY = backgroundY + (backgroundHeight / 2) - (editedValueFontHeight / 2) - editedValueVerticalNudge;
+    var editedValueX = centerX;
 
-    var integerFontHeight = dc.getFontHeight(integerFont);
-    var integerVerticalNudge = (integerFontHeight * INTEGER_FONT_TOP_PADDING_RATIO).toNumber();
-    var integerY = backgroundY + (backgroundHeight / 2) - (integerFontHeight / 2) - integerVerticalNudge;
-    var integerX = centerX;
+    var delimiter = getDelimiter();
 
-    var decimalX = integerX + (integerWidth / 2) + (decimalWidth / 2);
-    var decimalY = integerY + (integerFontHeight - dc.getFontHeight(decimalFont)) / 2;
+    var leftValue = (_currentlyEditingPartIndex > 0) ? _parts[_currentlyEditingPartIndex - 1] + delimiter + " " : null;
+    var leftValueX = editedValueX - (editedValueWidth / 2);
+    var leftValueY = editedValueY + (editedValueFontHeight - dc.getFontHeight(_nonEditFont)) / 2;
+
+    var rightValue = (_currentlyEditingPartIndex < _parts.size() - 1) ? " " + delimiter + _parts[_currentlyEditingPartIndex + 1] : null;
+    var rightValueWidth = (rightValue != null) ? dc.getTextWidthInPixels(rightValue, _nonEditFont) : 0;
+    var rightValueX = editedValueX + (editedValueWidth / 2) + (rightValueWidth / 2);
+    var rightValueY = editedValueY + (editedValueFontHeight - dc.getFontHeight(_nonEditFont)) / 2;
 
     dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-    dc.drawText(integerX, integerY, integerFont, integerText, Graphics.TEXT_JUSTIFY_CENTER);
-    dc.drawText(decimalX, decimalY, decimalFont, decimalText, Graphics.TEXT_JUSTIFY_CENTER);
+    if (leftValue != null) {
+      dc.drawText(leftValueX, leftValueY, _nonEditFont, leftValue, Graphics.TEXT_JUSTIFY_RIGHT);
+    }
+    dc.drawText(editedValueX, editedValueY, _editFont, editedValue, Graphics.TEXT_JUSTIFY_CENTER);
+    if (rightValue != null) {
+      dc.drawText(rightValueX, rightValueY, _nonEditFont, rightValue, Graphics.TEXT_JUSTIFY_CENTER);
+    }
 
     // Draw a line under the current value to indicate that it's editable.
-    var lineY = integerY + integerFontHeight - 5;
+    var lineY = editedValueY + editedValueFontHeight - 5;
     dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
     dc.setPenWidth(2);
-    dc.drawLine(integerX - (integerWidth / 2) - 10, lineY, integerX + (integerWidth / 2) + 10, lineY);
-    dc.drawLine(integerX - (integerWidth / 2) - 10, lineY - 10, integerX - (integerWidth / 2) - 10, lineY);
-    dc.drawLine(integerX + (integerWidth / 2) + 10, lineY - 10, integerX + (integerWidth / 2) + 10, lineY);
+    dc.drawLine(editedValueX - (editedValueWidth / 2) - 10, lineY, editedValueX + (editedValueWidth / 2) + 10, lineY);
+    dc.drawLine(editedValueX - (editedValueWidth / 2) - 10, lineY - 10, editedValueX - (editedValueWidth / 2) - 10, lineY);
+    dc.drawLine(editedValueX + (editedValueWidth / 2) + 10, lineY - 10, editedValueX + (editedValueWidth / 2) + 10, lineY);
     dc.setPenWidth(1);
   }
 
+  function extractParts() {
+    if (_type == FiveByFiveInputType.NUMERIC) {
+      // Grab the current value as two variables: the integer part and the decimal part,
+      // zero-padded so its length always matches _decimalPlaces (e.g. 2 places -> "05").
+      var integerPart = _currentValue.toNumber();
+      var decimalMultiplier = Math.pow(10, _decimalPlaces).toNumber();
+      var decimalPart = Math.round((_currentValue - integerPart) * decimalMultiplier).toNumber().format("%0" + _decimalPlaces.toString() + "d");
+      var integerText = integerPart.toString();
+      var decimalText = decimalPart.toString();
+      return [integerText, decimalText];
+    }
+    return [];
+  }
+
+  function getDelimiter() {
+    switch (_type) {
+      case FiveByFiveInputType.TIME:
+        return ":";
+      default:
+        return ".";
+    }
+  }
+
   function handleDownPress() {
-    if (_currentValue >= _max) {
+    if (_currentValue >= maxValue) {
         return;
     }
-    _currentValue = _currentValue + 1;
-    System.println("Current value: " + _currentValue);
+    _currentValue = roundToDecimals(_currentValue + Math.pow(10, -_currentlyEditingPartIndex));
     WatchUi.requestUpdate();
   }
 
   function handleUpPress() {
-    if (_currentValue <= _min) {
+    if (_currentValue <= minValue) {
         return;
     }
-    _currentValue = _currentValue - 1;
-    System.println("Current value: " + _currentValue);
+    _currentValue = roundToDecimals(_currentValue - Math.pow(10, -_currentlyEditingPartIndex));
     WatchUi.requestUpdate();
   }
 
   function handleLapPress() {
+    if (_currentlyEditingPartIndex < _parts.size() - 1) {
+      _currentlyEditingPartIndex += 1;
+      WatchUi.requestUpdate();
+      return;
+    }
+    
     if (_onSelect == null) {
       return;
     }
@@ -133,11 +169,22 @@ class InputViewTemplate extends WatchUi.View {
   }
 
   function handleBackPress() {
+    if (_currentlyEditingPartIndex > 0) {
+      _currentlyEditingPartIndex -= 1;
+      WatchUi.requestUpdate();
+      return true;
+    }
+
     if (_onCancel == null) {
       return false;
     }
 
     _onCancel.invoke();
     return true;
+  }
+
+  function roundToDecimals(value) {
+    var multiplier = Math.pow(10, _decimalPlaces);
+    return Math.round(value * multiplier) / multiplier;
   }
 }

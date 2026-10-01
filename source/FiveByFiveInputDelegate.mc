@@ -4,16 +4,20 @@ using Toybox.WatchUi;
 
 class FiveByFiveInputDelegate extends WatchUi.BehaviorDelegate {
     const HOLD_MS = 700;
+    // A single back press can arrive as onKeyPressed, onKey and onBack; only act on the first.
+    const BACK_DEDUPE_MS = 300;
 
     var _view;
     var _upPressedAt;
     var _upHandledAt;
+    var _backHandledAt;
 
     function initialize(view) {
         BehaviorDelegate.initialize();
         _view = view;
         _upPressedAt = 0;
         _upHandledAt = 0;
+        _backHandledAt = -BACK_DEDUPE_MS;
     }
 
     function onKeyPressed(keyEvent) as Lang.Boolean {
@@ -49,7 +53,7 @@ class FiveByFiveInputDelegate extends WatchUi.BehaviorDelegate {
         }
         if (_isUpKey(key)) {
             var heldFor = System.getTimer() - _upPressedAt;
-            if (heldFor >= HOLD_MS) {
+            if (heldFor >= HOLD_MS && (_view has :handleUpHold)) {
                 _view.handleUpHold();
             } else {
                 _view.handleUpPress();
@@ -83,6 +87,11 @@ class FiveByFiveInputDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function _handleBackPress() as Lang.Boolean {
+        var now = System.getTimer();
+        if (now - _backHandledAt < BACK_DEDUPE_MS) {
+            return true;
+        }
+        _backHandledAt = now;
         _view.handleBackPress();
         return true;
     }

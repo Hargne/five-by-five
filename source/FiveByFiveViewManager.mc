@@ -58,7 +58,7 @@ class FiveByFiveMainViewManager {
 
     if (viewName == FiveByFiveView.WORKOUT_EXERCISES_LIST) {
       if (_workoutExercisesListView == null) {
-        _workoutExercisesListView = new WorkoutExercisesListView(method(:onEnterExerciseEdit));
+        _workoutExercisesListView = new WorkoutExercisesListView(_workoutManager, method(:onEnterExerciseEdit));
         _workoutExercisesListView.assignOnBackHandler(method(:onWorkoutExercisesListBack));
       }
       _workoutExercisesListView.setExercises(_workoutManager.getCurrentWorkoutExercises());

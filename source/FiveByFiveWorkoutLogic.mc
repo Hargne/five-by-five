@@ -37,10 +37,6 @@ module FiveByFiveWorkoutLogic {
         return "A";
     }
 
-    function formatWeightKg(value) {
-        return value.format("%0.1f") + " kg";
-    }
-
     // Trims to the smallest decimal precision that exactly represents the weight:
     // whole numbers show no decimals, halves show 1, quarters show 2.
     function formatWeight(value) as Lang.String {

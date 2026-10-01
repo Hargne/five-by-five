@@ -1,19 +1,21 @@
 using Toybox.Lang;
 
 class WorkoutExercisesListView extends SelectionViewTemplate {
+  var _workoutManager;
   var _onExerciseSelected;
   var _exercises;
 
-  function initialize(onExerciseSelected) {
+  function initialize(workoutManager, onExerciseSelected) {
     SelectionViewTemplate.initialize("Exercises", []);
 
+    _workoutManager = workoutManager;
     _onExerciseSelected = onExerciseSelected;
     assignOnSelectHandler(method(:selectExercise));
   }
 
   function setExercises(exercises) {
     _exercises = exercises as Lang.Array;
-    setOptions(getWorkoutExerciseOptions(_exercises));
+    setOptions(getWorkoutExerciseOptions(_workoutManager, _exercises));
   }
 
   function selectExercise(selectedIndex, selectedOption) {
@@ -22,14 +24,14 @@ class WorkoutExercisesListView extends SelectionViewTemplate {
   }
 }
 
-function getWorkoutExerciseOptions(exercises) {
+function getWorkoutExerciseOptions(workoutManager, exercises) {
   var options = [];
   exercises = exercises as Lang.Array;
   for (var i = 0; i < exercises.size(); i += 1) {
     var exercise = exercises[i] as Lang.Dictionary;
     options.add([
       exercise[:sets] + "x " + exercise[:name],
-      FiveByFiveWorkoutLogic.formatWeight(exercise[:weight])
+      workoutManager.formatWeight(exercise[:weight])
     ]);
   }
 

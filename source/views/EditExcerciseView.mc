@@ -9,8 +9,15 @@ class EditExerciseView extends InputViewTemplate {
     _exercise = exercise as Lang.Dictionary;
     _onLeave = onLeave;
 
-    InputViewTemplate.initialize(_exercise[:name], 0, 100, _exercise[:weight], method(:handleSetWeight), onLeave);
+    InputViewTemplate.initialize(
+      _exercise[:name],
+      FiveByFiveInputType.NUMERIC,
+      _exercise[:weight],
+      method(:handleSetWeight),
+      onLeave
+    );
     _workoutManager = workoutManager;
+    maxValue = 999;
   }
 
   function handleSetWeight(newWeight) {
